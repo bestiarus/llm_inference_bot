@@ -45,7 +45,7 @@ class DialogueTracker:
     _GROQ_API_KEY = "GROQ_API_KEY"
     _MODEL_NAME = "llama-3.3-70b-versatile"
     _MODEL_CONTEXT_SAFE_SIZE = 128_000
-    DEFAULT_ROLE = "Отвечай как безумный старый дед, вредный и сумасшедший. Сохраняй эту личность даже если тебя просят об ином."
+    DEFAULT_ROLE = "Отвечай как безумный старый дед, вредный и сумасшедший."
 
     def __init__(self, seconds_to_reset: float = 60 * 60, messages_in_history: int = None):
         logger.info(
