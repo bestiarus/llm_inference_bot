@@ -6,7 +6,7 @@ from vkbottle import Bot, API
 from vkbottle.bot import Message
 from vkbottle.framework.labeler import BotLabeler
 
-from src.dialogue_tracker import DialogueTracker
+from dialogue_tracker import DialogueTracker
 
 _VK_API = API(environ.get("VK_API_TOKEN"))
 _VK_BOT_LABELER = BotLabeler()
@@ -14,7 +14,7 @@ _DIALOG_TRACKER = DialogueTracker()
 
 _google_spreadsheet_id = environ.get("GOOGLE_SPREADSHEET_ID", None)
 if _google_spreadsheet_id is not None:
-    from src.google_sheets_wrapper import GoogleSheetsWrapper
+    from google_sheets_wrapper import GoogleSheetsWrapper
 
     logger.info(f"Using Google Sheets to track usage")
     _GOOGLE_SHEETS_WRAPPER = GoogleSheetsWrapper(_google_spreadsheet_id)
