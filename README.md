@@ -1,11 +1,11 @@
 # ChatGPT bot
 
-Simple chatbot using OpenAI's [public API](https://platform.openai.com/docs/guides/chat)
+Simple chatbot using Groq's [public API](https://groq.com/)
 
 ## Pre-requisites
 
-1. Create an account on [OpenAI](https://openai.com/)
-2. Create an API key and add it to your environment variables as `OPENAI_API_KEY`
+1. Create an account on [Groq](https://groq.com/)
+2. Create an API key and add it to your environment variables as GROQ_API_KEY`
 3. Install the dependencies using `pip install -r requirements.txt`
 
 ## VK bot
