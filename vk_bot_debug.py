@@ -113,44 +113,8 @@ async def handle_message(message: Message):
 
     logger.info(f"Получено сообщение от {user_id} в чате {peer_id}: {text[:50]}...")
 
-    # Проверяем, упоминается ли бот в сообщении
-    try:
-        # Получаем информацию о боте
-        bot_info = await _VK_API.users.get()
-        bot_id = bot_info[0].id
-        bot_name = bot_info[0].first_name.lower()
-        
-        logger.info(f"Bot ID: {bot_id}, Bot name: {bot_name}")
-        
-        # Проверяем упоминание бота (@bot_name или @id)
-        bot_mentioned = False
-        
-        # Проверяем упоминание по ID
-        if f"@id{bot_id}" in text or f"@club{bot_id}" in text:
-            bot_mentioned = True
-            logger.info(f"Bot mentioned by ID: @id{bot_id}")
-        
-        # Проверяем упоминание по имени
-        elif f"@{bot_name}" in text.lower():
-            bot_mentioned = True
-            logger.info(f"Bot mentioned by name: @{bot_name}")
-        
-        # Проверяем команды (они всегда должны работать)
-        elif text.startswith("/"):
-            bot_mentioned = True
-            logger.info(f"Command detected: {text}")
-        
-        logger.info(f"Bot mentioned: {bot_mentioned}")
-        
-        # Если бот не упоминается, игнорируем сообщение
-        if not bot_mentioned:
-            logger.info(f"Ignoring message - bot not mentioned")
-            return
-            
-    except Exception as e:
-        logger.error(f"Error checking bot mention: {e}")
-        # В случае ошибки, обрабатываем сообщение как обычно
-        bot_mentioned = True
+    # ОТЛАДОЧНАЯ ВЕРСИЯ: обрабатываем все сообщения без проверки упоминания
+    logger.info(f"DEBUG: Processing all messages without mention check")
 
     if text.startswith("/role"):
         command, argument = text.split(maxsplit=1)
@@ -193,11 +157,11 @@ async def handle_message(message: Message):
 
 def main():
     logger.disable("vkbottle")
-    logger.info(f"Starting VK bot")
+    logger.info(f"Starting VK bot (DEBUG MODE - no mention check)")
     bot = Bot(api=_VK_API, labeler=_VK_BOT_LABELER)
     logger.info(f"Success?")
     bot.run_forever()
 
 
 if __name__ == "__main__":
-    main()
+    main() 
