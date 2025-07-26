@@ -120,6 +120,53 @@ class DialogueTracker:
         self._dialogue_history[user_id].update(user_message, answer, prompt, completion)
         return answer, total
 
+    def _build_completion_with_context(self, user_message: str, user_id: str, chat_context: list[dict]) -> list[dict]:
+        if not self._validate_user_dialogue(user_id):
+            if user_id in self._dialogue_history:
+                del self._dialogue_history[user_id]
+            self._dialogue_history[user_id] = Dialogue(user_id)
+
+        dialogue = self._dialogue_history[user_id]
+
+        while dialogue.total_tokens > self._MODEL_CONTEXT_SAFE_SIZE:
+            dialogue.pop()
+
+        if self.messages_in_history is not None:
+            while len(dialogue.history) > self.messages_in_history:
+                dialogue.pop()
+
+        role = self.get_role(user_id)
+        messages = [{"role": "system", "content": role}]
+        
+        # Добавляем контекст чата
+        if chat_context:
+            context_text = "Контекст чата (последние сообщения):\n"
+            for msg in chat_context:
+                context_text += f"{msg['user_name']}: {msg['text']}\n"
+            messages.append({"role": "system", "content": context_text})
+        
+        # Добавляем историю диалога с ботом
+        for message_type, message in dialogue.history:
+            messages.append({"role": message_type.value, "content": message})
+        messages.append({"role": MessageType.USER.value, "content": user_message})
+
+        return messages
+
+    async def on_message_with_context(self, user_message: str, user_id: str, chat_context: list[dict]) -> tuple[str, int]:
+        messages = self._build_completion_with_context(user_message, user_id, chat_context)
+
+        response = self._client.chat.completions.create(
+            messages=messages, model=self._MODEL_NAME
+        )
+
+        answer = response.choices[0].message.content
+        prompt, completion = response.usage.prompt_tokens, response.usage.completion_tokens
+        total = prompt + completion
+        logger.info(f"[User '{user_id}'] prompt: {prompt}, completion: {completion}, total: {total}")
+
+        self._dialogue_history[user_id].update(user_message, answer, prompt, completion)
+        return answer, total
+
     def reset(self, user_id: str):
         logger.info(f"Resetting history for user '{user_id}'")
         if user_id in self._dialogue_history:

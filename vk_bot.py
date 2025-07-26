@@ -23,6 +23,48 @@ else:
     _GOOGLE_SHEETS_WRAPPER = None
 
 
+async def get_chat_history(peer_id: int, count: int = 50) -> list[dict]:
+    """Получает историю сообщений из чата"""
+    try:
+        # Получаем историю сообщений
+        history_response = await _VK_API.messages.get_history(
+            peer_id=peer_id,
+            count=count,
+            rev=0  # В обратном хронологическом порядке (новые сначала)
+        )
+        
+        messages = history_response.items
+        
+        # Получаем информацию о пользователях для отображения имен
+        user_ids = set()
+        for msg in messages:
+            if msg.from_id > 0:  # Исключаем сообщения от групп
+                user_ids.add(msg.from_id)
+        
+        users_info = {}
+        if user_ids:
+            users = await _VK_API.users.get(user_ids=list(user_ids))
+            for user in users:
+                users_info[user.id] = f"{user.first_name} {user.last_name}"
+        
+        # Формируем контекст чата
+        chat_context = []
+        for msg in reversed(messages):  # Переворачиваем для хронологического порядка
+            if msg.from_id > 0:  # Только сообщения от пользователей
+                user_name = users_info.get(msg.from_id, f"User{msg.from_id}")
+                chat_context.append({
+                    "user_id": msg.from_id,
+                    "user_name": user_name,
+                    "text": msg.text,
+                    "timestamp": msg.date
+                })
+        
+        return chat_context
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}")
+        return []
+
+
 _HELP_MESSAGE = """Список команд:
 - /help -- Помощь
 - /role <role> -- Установить кастомную роль
@@ -62,6 +104,26 @@ async def reset(message: Message):
 async def handle_message(message: Message):
     user_id = message.from_id
     text = message.text
+    peer_id = message.peer_id
+
+    # Проверяем, упоминается ли бот в сообщении
+    # Получаем информацию о боте
+    bot_info = await _VK_API.users.get()
+    bot_id = bot_info[0].id
+    
+    # Проверяем упоминание бота (@bot_name или @id)
+    bot_mentioned = False
+    if f"@id{bot_id}" in text or f"@club{bot_id}" in text:
+        bot_mentioned = True
+    else:
+        # Проверяем упоминание по имени (если есть)
+        bot_name = bot_info[0].first_name.lower()
+        if f"@{bot_name}" in text.lower():
+            bot_mentioned = True
+    
+    # Если бот не упоминается, игнорируем сообщение
+    if not bot_mentioned:
+        return
 
     if text.startswith("/role"):
         command, argument = text.split(maxsplit=1)
@@ -72,7 +134,14 @@ async def handle_message(message: Message):
         return
 
     try:
-        answer, total_tokens = await _DIALOG_TRACKER.on_message(message.text, user_id)
+        # Получаем контекст чата
+        chat_context = await get_chat_history(peer_id, count=50)
+        
+        # Передаем сообщение с контекстом чата
+        answer, total_tokens = await _DIALOG_TRACKER.on_message_with_context(
+            message.text, user_id, chat_context
+        )
+        
         user_info = (await _VK_API.users.get(user_id))[0]
         user_name = f"{user_info.last_name} {user_info.first_name}"
 
