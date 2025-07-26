@@ -16,10 +16,17 @@ Add the token to your environment variables as `VK_API_TOKEN`.
 
 To start the bot run:
 ```shell
-python -m src.vk_bot
+python vk_bot.py
 ```
 
 Use `/help` to see the list of available commands.
+
+### Features
+
+- **Chat Context**: The bot now receives the last 50 messages from the chat as context when responding, allowing it to understand the conversation flow and respond more appropriately.
+- **Mention-based Responses**: The bot only responds when mentioned using `@bot_name` or `@id{bot_id}`.
+- **Role Management**: Users can set custom roles using `/role <role>` command.
+- **History Reset**: Use `/reset` to clear conversation history and reset to default role.
 
 VK Bot also can log all usage statistic to Google Sheets.
 Follow [documentation](https://developers.google.com/sheets/api/quickstart/python) to set up API.
@@ -38,5 +45,5 @@ Add the generated token to your environment variables as `TG_API_TOKEN`.
 
 To start the bot run:
 ```shell
-python -m src.telegram_bot
+python telegram_bot.py
 ```
