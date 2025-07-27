@@ -159,7 +159,7 @@ async def handle_message(message: Message):
         chat_context = await get_chat_history(peer_id, count=50)
         if not chat_context:
             logger.warning(f"Не удалось получить историю сообщений для peer_id={peer_id} (chat_id={chat_id}). Возможно, нет доступа к истории чата.")
-            await message.answer("⚠️ Не удалось получить историю сообщений чата. Проверьте права доступа бота.")
+            #await message.answer("⚠️ Не удалось получить историю сообщений чата. Проверьте права доступа бота.")
             return
         logger.info(f"Retrieved {len(chat_context)} messages from chat history")
         answer, total_tokens = await _DIALOG_TRACKER.on_message_with_context(
