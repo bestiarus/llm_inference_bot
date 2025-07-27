@@ -111,45 +111,38 @@ async def handle_message(message: Message):
     text = message.text
     peer_id = message.peer_id
 
+    # Определяем chat_id для групповых чатов
+    if peer_id >= 2000000000:
+        chat_id = peer_id - 2000000000
+        logger.info(f'Групповой чат: peer_id={peer_id}, chat_id={chat_id}')
+    else:
+        chat_id = None
+        logger.info(f'Личное сообщение или беседа: peer_id={peer_id}')
+
     logger.info(f"Получено сообщение от {user_id} в чате {peer_id}: {text[:50]}...")
 
-    # Проверяем, упоминается ли бот в сообщении
     try:
         # Получаем информацию о боте
         bot_info = await _VK_API.users.get()
         bot_id = bot_info[0].id
         bot_name = bot_info[0].first_name.lower()
-        
         logger.info(f"Bot ID: {bot_id}, Bot name: {bot_name}")
-        
-        # Проверяем упоминание бота (@bot_name или @id)
         bot_mentioned = False
-        
-        # Проверяем упоминание по ID
         if f"@id{bot_id}" in text or f"@club{bot_id}" in text:
             bot_mentioned = True
             logger.info(f"Bot mentioned by ID: @id{bot_id}")
-        
-        # Проверяем упоминание по имени
         elif f"@{bot_name}" in text.lower():
             bot_mentioned = True
             logger.info(f"Bot mentioned by name: @{bot_name}")
-        
-        # Проверяем команды (они всегда должны работать)
         elif text.startswith("/"):
             bot_mentioned = True
             logger.info(f"Command detected: {text}")
-        
         logger.info(f"Bot mentioned: {bot_mentioned}")
-        
-        # Если бот не упоминается, игнорируем сообщение
         if not bot_mentioned:
             logger.info(f"Ignoring message - bot not mentioned")
             return
-            
     except Exception as e:
         logger.error(f"Error checking bot mention: {e}")
-        # В случае ошибки, обрабатываем сообщение как обычно
         bot_mentioned = True
 
     if text.startswith("/role"):
@@ -163,31 +156,26 @@ async def handle_message(message: Message):
 
     try:
         logger.info(f"Processing message with context for user {user_id}")
-        
-        # Получаем контекст чата
         chat_context = await get_chat_history(peer_id, count=50)
+        if not chat_context:
+            logger.warning(f"Не удалось получить историю сообщений для peer_id={peer_id} (chat_id={chat_id}). Возможно, нет доступа к истории чата.")
+            await message.answer("⚠️ Не удалось получить историю сообщений чата. Проверьте права доступа бота.")
+            return
         logger.info(f"Retrieved {len(chat_context)} messages from chat history")
-        
-        # Передаем сообщение с контекстом чата
         answer, total_tokens = await _DIALOG_TRACKER.on_message_with_context(
             message.text, user_id, chat_context
         )
-        
         user_info = (await _VK_API.users.get(user_id))[0]
         user_name = f"{user_info.last_name} {user_info.first_name}"
-
         if _GOOGLE_SHEETS_WRAPPER is not None:
             _GOOGLE_SHEETS_WRAPPER.increase_user_usage(user_id, user_name, total_tokens)
-            
         logger.info(f"Generated response for user {user_id}: {answer[:50]}...")
-        
     except OpenAIError as e:
         logger.warning(f"OpenAI API error: {e}")
         answer = _OPENAI_ERROR_MESSAGE
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         answer = _SYSTEM_ERROR_MESSAGE
-        
     await message.answer(answer)
 
 
